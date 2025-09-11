@@ -759,7 +759,7 @@ class HunyuanImagePipeline:
 
         timesteps, sigmas = self.get_timesteps_sigmas(sampling_steps, shift)
 
-        self.dit.to(self.execution_device)
+        # self.dit.to(self.execution_device)
 
         for i, t in enumerate(tqdm(timesteps, desc="Denoising", total=len(timesteps))):
             latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents
@@ -790,7 +790,7 @@ class HunyuanImagePipeline:
 
         if self.config.enable_full_dit_offloading:
             self.dit.to('cpu')
-        self.vae.to(self.execution_device)
+        # self.vae.to(self.execution_device)
         image = self._decode_latents(latents)
         if self.config.enable_vae_offloading:
             self.vae.to('cpu')
