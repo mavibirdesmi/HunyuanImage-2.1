@@ -167,7 +167,7 @@ class HunYuanImageRefinerPipeline(HunyuanImagePipeline):
         image_tensor = image_tensor.unsqueeze(2)
 
         with torch.no_grad():
-            self.vae.to(self.execution_device)
+            # self.vae.to(self.execution_device)
             cond_latents = self.vae.encode(
                 image_tensor.to(self.device, dtype=self.vae.dtype)
             ).latent_dist.sample()
@@ -199,7 +199,7 @@ class HunYuanImageRefinerPipeline(HunyuanImagePipeline):
         text_emb = pos_text_emb
         text_mask = pos_text_mask
 
-        self.dit.to(self.execution_device)
+        # self.dit.to(self.execution_device)
         for i, t in enumerate(tqdm(timesteps, desc="Refining", total=len(timesteps))):
             # Concatenate noise latents with condition latents for refiner input
             latent_model_input = torch.cat([latents, cond_latents], dim=1)
