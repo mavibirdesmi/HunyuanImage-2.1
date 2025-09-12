@@ -14,7 +14,6 @@ from .norm_layers import get_norm_layer
 from .posemb_layers import apply_rotary_emb
 
 
-@torch.compiler.disable
 def attention(
     q,
     k,
