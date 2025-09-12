@@ -250,7 +250,7 @@ class MMDoubleStreamBlock(nn.Module):
 
         return img, txt
 
-@torch.compile(fullgraph=True, dynamic=True)
+
 class MMSingleStreamBlock(nn.Module):
     """
     A DiT block with parallel linear layers for multimodal processing.
