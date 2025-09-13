@@ -100,6 +100,7 @@ class RePrompt:
         except Exception as e:
             prompt_cot = org_prompt_cot
             loguru.logger.error(f"✗ Re-prompting failed, fall back to generate prompt. Cause: {e}")
+            raise e
 
         return prompt_cot
 
