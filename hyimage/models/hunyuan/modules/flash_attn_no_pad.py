@@ -52,7 +52,7 @@ try:
             max_seqlen_q,
             max_seqlen_k,
             None, None, None,   # page_table, kv_batch_idx, leftpad_k,
-            None, None, None,  # rotary_cos/sin, seqlens_rotary
+            None, None,  # rotary_cos/sin
             q_descale, k_descale, v_descale,
             softmax_scale,
             causal=causal,
