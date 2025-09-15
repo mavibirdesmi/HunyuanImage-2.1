@@ -30,15 +30,12 @@ try:
     ):
         if softmax_scale is None:
             softmax_scale = qkv.shape[-1] ** (-0.5)
-        if qkv.dim() == 5:
-            assert qkv.shape[-3] == 3
-            q, k, v = qkv.unbind(dim=-3)
-        else:
-            assert qkv.dim() == 4
-            assert num_heads_q is not None
-            num_heads_k = (qkv.shape[2] - num_heads_q) // 2
-            assert num_heads_k * 2 + num_heads_q == qkv.shape[2]
-            q, k, v = qkv.split([num_heads_q, num_heads_k, num_heads_k], dim=-2)
+        q, k, v = qkv[:, 0].detach(), qkv[:, 1].detach(), qkv[:, 2].detach()
+        head_size_og = q.size(2)
+        if head_size_og % 8 != 0:
+            q = torch.nn.functional.pad(q, [0, 8 - head_size_og % 8])
+            k = torch.nn.functional.pad(k, [0, 8 - head_size_og % 8])
+            v = torch.nn.functional.pad(v, [0, 8 - head_size_og % 8])
 
         out, softmax_lse, *rest = _flash_attn_forward(
             q,
