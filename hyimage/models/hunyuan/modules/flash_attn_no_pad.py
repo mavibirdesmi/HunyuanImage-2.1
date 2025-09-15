@@ -1,9 +1,74 @@
 import torch
 from einops import rearrange
 
+use_flash_attn_v3 = False
 try:
-    from flash_attn_interface import flash_attn_varlen_func, flash_attn_varlen_qkvpacked_func
+    from flash_attn_interface import flash_attn_varlen_func, _flash_attn_forward
+
+    def flash_attn_varlen_qkvpacked_func_v3(
+        qkv,
+        cu_seqlens_q,
+        cu_seqlens_k,
+        seqused_q,
+        seqused_k,
+        max_seqlen_q,
+        max_seqlen_k,
+        softmax_scale,
+        causal,
+        qv=None,
+        q_descale=None, k_descale=None, v_descale=None,
+        window_size=(-1, -1),
+        num_splits=1,
+        pack_gqa=None,
+        attention_chunk=0,
+        softcap=0.0,
+        deterministic=False,
+        num_heads_q=None,
+        sm_margin=0,
+        return_softmax=False,
+    ):
+        if softmax_scale is None:
+            softmax_scale = qkv.shape[-1] ** (-0.5)
+        if qkv.dim() == 5:
+            assert qkv.shape[-3] == 3
+            q, k, v = qkv.unbind(dim=-3)
+        else:
+            assert qkv.dim() == 4
+            assert num_heads_q is not None
+            num_heads_k = (qkv.shape[2] - num_heads_q) // 2
+            assert num_heads_k * 2 + num_heads_q == qkv.shape[2]
+            q, k, v = qkv.split([num_heads_q, num_heads_k, num_heads_k], dim=-2)
+
+        out, softmax_lse, *rest = _flash_attn_forward(
+            q,
+            k,
+            v,
+            None, None,  # k_new, v_new
+            qv,  # qv
+            None,  # out
+            cu_seqlens_q,
+            cu_seqlens_k,
+            None,   # cu_seqlens_k_new
+            seqused_q,
+            seqused_k,
+            max_seqlen_q,
+            max_seqlen_k,
+            None, None, None,   # page_table, kv_batch_idx, leftpad_k,
+            None, None, None,  # rotary_cos/sin, seqlens_rotary
+            q_descale, k_descale, v_descale,
+            softmax_scale,
+            causal=causal,
+            window_size=window_size,
+            attention_chunk=attention_chunk,
+            softcap=softcap,
+            num_splits=num_splits,
+            pack_gqa=pack_gqa,
+            sm_margin=sm_margin,
+        )
+        return (out, softmax_lse) if return_softmax else out
+
     print("Using FlashAttention v3.")
+    use_flash_attn_v3 = True
 except ImportError:
     print("FlashAttention v3 not found, falling back to v2.")
     from flash_attn import flash_attn_varlen_func, flash_attn_varlen_qkvpacked_func
@@ -100,15 +165,30 @@ def flash_attn_no_pad(
     x_unpad, indices, cu_seqlens, max_s = unpad_input(x, key_padding_mask)[:4]
     x_unpad = rearrange(x_unpad, "nnz (three h d) -> nnz three h d", three=3, h=nheads)
 
-    output_unpad = flash_attn_varlen_qkvpacked_func(
-        x_unpad,
-        cu_seqlens,
-        max_s,
-        dropout_p,
-        softmax_scale=softmax_scale,
-        causal=causal,
-        deterministic=deterministic,
-    )
+    if use_flash_attn_v3:
+        output_unpad = flash_attn_varlen_qkvpacked_func_v3(
+            qkv=x_unpad,
+            cu_seqlens_k=cu_seqlens,
+            cu_seqlens_q=cu_seqlens,
+            seqused_q=seqlen,
+            seqused_k=seqlen,
+            max_seqlen_q=max_s,
+            max_seqlen_k=max_s,
+            softmax_scale=softmax_scale,
+            causal=causal,
+            deterministic=deterministic,
+        )
+    else:
+        output_unpad = flash_attn_varlen_qkvpacked_func(
+            x_unpad,
+            cu_seqlens,
+            max_s,
+            dropout_p,
+            softmax_scale=softmax_scale,
+            causal=causal,
+            deterministic=deterministic,
+        )
+
     if isinstance(output_unpad, tuple):
         output_unpad = output_unpad[0]
 
