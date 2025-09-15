@@ -2,14 +2,12 @@ import torch
 from einops import rearrange
 
 try:
-    from flash_attn_interface import flash_attn_varlen_func
-
+    from flash_attn_interface import flash_attn_varlen_func, flash_attn_varlen_qkvpacked_func
     print("Using FlashAttention v3.")
 except ImportError:
     print("FlashAttention v3 not found, falling back to v2.")
-    from flash_attn import flash_attn_varlen_func
+    from flash_attn import flash_attn_varlen_func, flash_attn_varlen_qkvpacked_func
 
-from flash_attn import flash_attn_varlen_qkvpacked_func
 from flash_attn.bert_padding import pad_input, unpad_input
 
 
