@@ -31,13 +31,14 @@ class PatchEmbed2D(nn.Module):
         if bias:
             nn.init.zeros_(self.proj.bias)
 
-        self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
+        self.norm = norm_layer(embed_dim) if norm_layer else None
 
     def forward(self, x):
         x = self.proj(x)
         if self.flatten:
             x = x.flatten(2).transpose(1, 2)
-        x = self.norm(x)
+        if self.norm:
+            x = self.norm(x)
         return x
 
 
@@ -84,13 +85,14 @@ class PatchEmbed(nn.Module):
         if bias:
             nn.init.zeros_(self.proj.bias)
 
-        self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
+        self.norm = norm_layer(embed_dim) if norm_layer else None
 
     def forward(self, x):
         x = self.proj(x)
         if self.flatten:
             x = x.flatten(2).transpose(1, 2)  # BCHW -> BNC
-        x = self.norm(x)
+        if self.norm:
+            x = self.norm(x)
         return x
 
 

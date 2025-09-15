@@ -84,10 +84,10 @@ class IndividualTokenRefinerBlock(nn.Module):
         self.self_attn_qkv = nn.Linear(hidden_size, hidden_size * 3, bias=qkv_bias, **factory_kwargs)
         qk_norm_layer = get_norm_layer(qk_norm_type)
         self.self_attn_q_norm = (
-            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else nn.Identity()
+            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else None
         )
         self.self_attn_k_norm = (
-            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else nn.Identity()
+            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else None
         )
         self.self_attn_proj = nn.Linear(hidden_size, hidden_size, bias=qkv_bias, **factory_kwargs)
 
@@ -130,8 +130,12 @@ class IndividualTokenRefinerBlock(nn.Module):
         norm_x = self.norm1(x)
         qkv = self.self_attn_qkv(norm_x)
         q, k, v = rearrange(qkv, "B L (K H D) -> K B L H D", K=3, H=self.heads_num)
-        q = self.self_attn_q_norm(q).to(v)
-        k = self.self_attn_k_norm(k).to(v)
+        if self.self_attn_q_norm is not None:
+            q = self.self_attn_q_norm(q)
+        q = q.to(v)
+        if self.self_attn_k_norm is not None:
+            k = self.self_attn_k_norm(k)
+        k = k.to(v)
         attn = attention(q, k, v, attn_mask=attn_mask)
         x = x + apply_gate(self.self_attn_proj(attn), gate_msa)
         x = x + apply_gate(self.mlp(self.norm2(x)), gate_mlp)

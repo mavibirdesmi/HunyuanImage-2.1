@@ -37,7 +37,7 @@ class MLP(nn.Module):
         self.fc1 = linear_layer(in_channels, hidden_channels, bias=bias[0], **factory_kwargs)
         self.act = act_layer()
         self.drop1 = nn.Dropout(drop_probs[0])
-        self.norm = norm_layer(hidden_channels, **factory_kwargs) if norm_layer is not None else nn.Identity()
+        self.norm = norm_layer(hidden_channels, **factory_kwargs) if norm_layer is not None else None
         self.fc2 = linear_layer(hidden_channels, out_features, bias=bias[1], **factory_kwargs)
         self.drop2 = nn.Dropout(drop_probs[1])
 
@@ -45,7 +45,8 @@ class MLP(nn.Module):
         x = self.fc1(x)
         x = self.act(x)
         x = self.drop1(x)
-        x = self.norm(x)
+        if self.norm:
+            x = self.norm(x)
         x = self.fc2(x)
         x = self.drop2(x)
         return x

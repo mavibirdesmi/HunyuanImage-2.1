@@ -96,10 +96,10 @@ class MMDoubleStreamBlock(nn.Module):
 
         qk_norm_layer = get_norm_layer(qk_norm_type)
         self.img_attn_q_norm = (
-            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else nn.Identity()
+            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else None
         )
         self.img_attn_k_norm = (
-            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else nn.Identity()
+            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else None
         )
         self.img_attn_proj = nn.Linear(hidden_size, hidden_size, bias=qkv_bias, **factory_kwargs)
 
@@ -125,10 +125,10 @@ class MMDoubleStreamBlock(nn.Module):
         self.txt_attn_k = nn.Linear(hidden_size, hidden_size, bias=qkv_bias, **factory_kwargs)
         self.txt_attn_v = nn.Linear(hidden_size, hidden_size, bias=qkv_bias, **factory_kwargs)
         self.txt_attn_q_norm = (
-            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else nn.Identity()
+            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else None
         )
         self.txt_attn_k_norm = (
-            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else nn.Identity()
+            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else None
         )
         self.txt_attn_proj = nn.Linear(hidden_size, hidden_size, bias=qkv_bias, **factory_kwargs)
 
@@ -189,8 +189,12 @@ class MMDoubleStreamBlock(nn.Module):
         img_v = rearrange(img_v, "B L (H D) -> B L H D", H=self.heads_num)
 
         # Apply QK-Norm if enabled
-        img_q = self.img_attn_q_norm(img_q).to(img_v)
-        img_k = self.img_attn_k_norm(img_k).to(img_v)
+        if self.img_attn_q_norm is not None:
+            img_q = self.img_attn_q_norm(img_q)
+        img_q = img_q.to(img_v)
+        if self.img_attn_k_norm is not None:
+            img_k = self.img_attn_k_norm(img_k)
+        img_k = img_k.to(img_v)
 
         # Apply RoPE if provided
         if freqs_cis is not None:
@@ -213,8 +217,12 @@ class MMDoubleStreamBlock(nn.Module):
         txt_v = rearrange(txt_v, "B L (H D) -> B L H D", H=self.heads_num)
 
         # Apply QK-Norm if enabled
-        txt_q = self.txt_attn_q_norm(txt_q).to(txt_v)
-        txt_k = self.txt_attn_k_norm(txt_k).to(txt_v)
+        if self.txt_attn_q_norm is not None:
+            txt_q = self.txt_attn_q_norm(txt_q)
+        txt_q = txt_q.to(txt_v)
+        if self.txt_attn_k_norm is not None:
+            txt_k = self.txt_attn_k_norm(txt_k)
+        txt_k = txt_k.to(txt_v)
 
         # Compute cross-modal attention
         attn = self.core_attn(
@@ -291,10 +299,10 @@ class MMSingleStreamBlock(nn.Module):
         # QK normalization layers
         qk_norm_layer = get_norm_layer(qk_norm_type)
         self.q_norm = (
-            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else nn.Identity()
+            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else None
         )
         self.k_norm = (
-            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else nn.Identity()
+            qk_norm_layer(head_dim, elementwise_affine=True, eps=1e-6, **factory_kwargs) if qk_norm else None
         )
 
         self.pre_norm = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6, **factory_kwargs)
@@ -339,8 +347,12 @@ class MMSingleStreamBlock(nn.Module):
         mlp = self.linear1_mlp(x_mod)
 
         # Apply QK-Norm if enabled
-        q = self.q_norm(q).to(v)
-        k = self.k_norm(k).to(v)
+        if self.q_norm is not None:
+            q = self.q_norm(q)
+        q = q.to(v)
+        if self.k_norm is not None:
+            k = self.k_norm(k)
+        k = k.to(v)
 
         # Split into image and text sequences
         img_q, txt_q = q[:, :-txt_len, :, :], q[:, -txt_len:, :, :]
