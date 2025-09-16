@@ -4,7 +4,9 @@ from einops import rearrange
 
 use_flash_attn_v3 = False
 try:
-    from flash_attn_interface import flash_attn_varlen_func, _flash_attn_forward
+    import kernels
+    flash_attn3 = kernels.load_kernel(repo_id="kernels-community/flash-attn3")
+    flash_attn_varlen_func = flash_attn3.flash_attn_varlen_func
 
     def flash_attn_varlen_qkvpacked_func_v3(
         qkv,
@@ -37,7 +39,7 @@ try:
             k = torch.nn.functional.pad(k, [0, 8 - head_size_og % 8])
             v = torch.nn.functional.pad(v, [0, 8 - head_size_og % 8])
 
-        out, softmax_lse, *rest = _flash_attn_forward(
+        out, softmax_lse, *rest = flash_attn3._flash_attn_forward(
             q,
             k,
             v,
