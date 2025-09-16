@@ -42,29 +42,21 @@ try:
             k = torch.nn.functional.pad(k, [0, 8 - head_size_og % 8])
             v = torch.nn.functional.pad(v, [0, 8 - head_size_og % 8])
 
-        out, softmax_lse, *rest = flash_attn3._flash_attn_forward(
+        out, softmax_lse, *rest = flash_attn3.flash_attn_func(
             q,
             k,
             v,
-            None, None,  # k_new, v_new
-            qv,  # qv
-            None,  # out
-            cu_seqlens_q,
-            cu_seqlens_k,
-            None,   # cu_seqlens_k_new
-            seqused_q,
-            seqused_k,
-            max_seqlen_q,
-            max_seqlen_k,
-            None, None, None,   # page_table, kv_batch_idx, leftpad_k,
-            None, None, None,  # rotary_cos/sin, seqlens_rotary
-            q_descale, k_descale, v_descale,
-            softmax_scale,
+            softmax_scale=softmax_scale,
             causal=causal,
+            qv=qv,  # qv
+            q_descale=q_descale,
+            k_descale=k_descale,
+            v_descale=v_descale,
             window_size=window_size,
             softcap=softcap,
             num_splits=num_splits,
             pack_gqa=pack_gqa,
+            deterministic=deterministic,
             sm_margin=sm_margin,
         )
         return (out, softmax_lse) if return_softmax else out
