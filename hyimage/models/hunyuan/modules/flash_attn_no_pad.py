@@ -5,7 +5,10 @@ from einops import rearrange
 use_flash_attn_v3 = False
 try:
     import kernels
-    flash_attn3 = kernels.load_kernel(repo_id="kernels-community/flash-attn3")
+    flash_attn3 = kernels.get_kernel(
+        repo_id="kernels-community/flash-attn3",
+        revision="5c7b1c30bd789a398441bcbc313da5aac3eec147"
+    )
     flash_attn_varlen_func = flash_attn3.flash_attn_varlen_func
 
     def flash_attn_varlen_qkvpacked_func_v3(
