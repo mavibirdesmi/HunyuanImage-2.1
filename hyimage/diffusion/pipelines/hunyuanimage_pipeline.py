@@ -510,7 +510,7 @@ class HunyuanImagePipeline:
                     device=latents.device
                 ).to(latents.dtype) * 1000
             else:
-                guidance_expand = None
+                guidance_expand = torch.tensor([6016.0], device=latents.device, dtype=torch.bfloat16)
 
             noise_pred = self.dit(
                 latents,
